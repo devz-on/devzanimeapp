@@ -1,0 +1,46 @@
+name: Build and Test Android App
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Setup keystore
+      run: |
+        echo "${{ secrets.KEYSTORE_FILE }}" | base64 --decode > $HOME/devz.keystore
+        echo "storeFile=$HOME/devz.keystore" > $HOME/keystore.properties
+        echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> $HOME/keystore.properties
+        echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> $HOME/keystore.properties
+        echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> $HOME/keystore.properties
+
+    - name: Build with Gradle
+      run: ./gradlew assembleRelease
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        
